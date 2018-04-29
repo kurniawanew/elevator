@@ -51,17 +51,50 @@ Elevator.prototype.decide = function() {
     
     var elevator = this;
     var people = this.get_people();
-    var person = people.length > 0 ? people[0] : undefined;
     
     if(elevator) {
         elevator.at_floor();
         elevator.get_destination_floor();
         elevator.get_position();
     }
-    
-    if(person) {
-        person.get_floor();
-        return this.commit_decision(person.get_destination_floor());
+
+    var elevator_index = 0;
+    for (var k = 0; k < elevators.length; k++) {
+        if (elevator.get_position() == elevators[k].get_position() && elevator.get_people() == elevators[k].get_people()) {
+            elevator_index = k;
+        }
+        if (elevators[k].at_floor() == 1) {
+            window['elevator' + k] = 'up';
+        } else if (elevators[k].at_floor() == 30) {
+            window['elevator' + k] = 'down';
+        }
+    }
+
+    var people_destination = [];
+    if (people.length > 0) {
+        for (var x = 0; x < people.length; x++) {
+            people[x].get_floor();
+            people_destination.push(people[x].get_destination_floor());
+        }
+    }
+
+    if (window['elevator' + elevator_index] == 'up') {
+        requests.sort(function (a, b) { return a - b });
+        people_destination.sort(function (a, b) { return a - b });
+    } else if (window['elevator' + elevator_index] == 'down') {
+        requests.sort(function (a, b) { return b - a });        
+        people_destination.sort(function (a, b) { return b - a });        
+    }
+
+    if (people.length > 0) {
+        for (var l = 0; l < people_destination.length; l++) {
+            var the_diff = people_destination[l] - elevator.at_floor();
+            if (window['elevator' + elevator_index] == 'up' && the_diff > 0) {
+                return this.commit_decision(people_destination[l]);
+            } else if (window['elevator' + elevator_index] == 'down' && the_diff < 0) {
+                return this.commit_decision(people_destination[l]);
+            }
+        }
     }
     
     for(var i = 0;i < requests.length;i++) {
@@ -73,9 +106,14 @@ Elevator.prototype.decide = function() {
             }
         }
         if(!handled) {
-            return this.commit_decision(requests[i]);
+            var the_diff = requests[i] - elevator.at_floor();
+            if (window['elevator' + elevator_index] == 'up' && the_diff > 0) {
+                return this.commit_decision(requests[i]);
+            } else if (window['elevator' + elevator_index] == 'down' && the_diff < 0) {
+                return this.commit_decision(requests[i]);
+            }
         }
     }
 
-    return this.commit_decision(Math.floor(num_floors / 2));
+    return this.commit_decision(1);
 };
